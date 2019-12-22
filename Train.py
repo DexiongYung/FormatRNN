@@ -113,7 +113,7 @@ for iter in range(1, n_iters + 1):
     if iter % print_every == 0:
         guess, guess_i = categoryFromOutput(output)
         correct = '✓' if guess_i == category else '✗ (%s)' % ALL_CATEGORIES[category]
-        print('%d %d%% (%s) %.4f %s / %s %s %s' % (iter, iter / n_iters * 100, timeSince(start), loss, line, guess, correct))
+        print('%d %d%% (%s) %.4f %s / %s %s' % (iter, iter / n_iters * 100, timeSince(start), loss, line, guess, correct))
 
     # Add current loss avg to list of losses
     if iter % plot_every == 0:
