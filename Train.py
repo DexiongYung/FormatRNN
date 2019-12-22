@@ -120,4 +120,4 @@ for iter in range(1, n_iters + 1):
         all_losses.append(current_loss / plot_every)
         current_loss = 0
 
-plot_losses(all_losses,folder="generators/result",filename=f"{RNN_TEST}.png")
+plot_losses(all_losses,folder="generators/result",filename="rnn_test.png")
