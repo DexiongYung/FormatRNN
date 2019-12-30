@@ -145,15 +145,23 @@ hidden = torch.zeros(1, n_hidden)
 # Keep track of losses for plotting
 current_loss = 0
 all_losses = []
+correct_count = 0
+incorrect_count = 0
 
 for iter in range(1, n_iters + 1):
     category, line, category_tensor, line_tensor = randomTrainingExample(df)
     output, loss = train(rnn, category_tensor, line_tensor)
     current_loss += loss
 
+    guess, guess_i = categoryFromOutput(output)
+
+    if guess_i == category:
+        correct_count += 1
+    else :
+        incorrect_count += 1
+
     # Print iter number, loss, name and guess
     if iter % print_every == 0:
-        guess, guess_i = categoryFromOutput(output)
         correct = '✓' if guess_i == category else '✗ (%s)' % ALL_CATEGORIES[category]
         print('%d %d%% (%s) %.4f %s / %s %s' % (iter, iter / n_iters * 100, timeSince(start), loss, line, guess, correct))
 
@@ -161,6 +169,8 @@ for iter in range(1, n_iters + 1):
     if iter % plot_every == 0:
         all_losses.append(current_loss / plot_every)
         current_loss = 0
+
+print('%d% Correct' % (correct_count/(correct_count + incorrect_count)))
 
 plot_losses(all_losses,folder="generators/result",filename="rnn_test.png")
 rnn.save_checkpoint()
