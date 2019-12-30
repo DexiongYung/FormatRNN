@@ -1,4 +1,4 @@
-
+import re
 import torch
 import string
 import torch.nn as nn
@@ -17,6 +17,7 @@ plot_every = 1000
 ALL_LETTERS = string.printable
 LEARN_RATE = 0.005
 LETTERS_COUNT = len(ALL_LETTERS)
+WORD_COUNT = 7
 # Formats:
 # 0 = first last
 # 1 = first middle last
@@ -25,6 +26,8 @@ LETTERS_COUNT = len(ALL_LETTERS)
 # 4 = first middle_initial. last
 # 5 = last, first middle_initial.
 ALL_CATEGORIES = ["first last", "first middle last", "last, first", "last, first middle", "first middle_init. last", "last, first middle_init"]
+FORMAT_COUNT = len(ALL_CATEGORIES)
+EMBEDDINGS_COUNT = 5
 
 def letterToIndex(letter):
     return ALL_LETTERS.find(letter)
@@ -43,6 +46,21 @@ def lineToTensor(line):
         tensor[li][0][letterToIndex(letter)] = 1
     return tensor
 
+def embeddedLineToTensor(embedded_line:str):
+    tensor = torch.zeros(len(embedded_line), 1, EMBEDDINGS_COUNT)
+    for i, letter in enumerate(embedded_line):
+        tensor[i][0][int(letter)] = 1
+    return tensor
+
+def embedLine(line:str):
+    line = re.sub("\w[A-Za-z'-]+", "1", line)
+    line = re.sub("\s", "0", line)
+    line = re.sub("\,", "2", line)
+    line = re.sub("\"", "3", line)
+    line = re.sub("\.", "4", line)
+    line = re.sub("[A-Z]", "1", line)
+    return line
+
 def categoryFromOutput(output):
     top_n, top_i = output.topk(1)
     category_i = top_i[0].item()
@@ -56,7 +74,8 @@ def randomTrainingExample(df):
     choice_format = random_choice["format"]
     choice_name = random_choice["name"]
     category_tensor = torch.tensor([choice_format], dtype=torch.long)
-    line_tensor = lineToTensor(choice_name)
+    embedded_line = embedLine(choice_name)
+    line_tensor = embeddedLineToTensor(embedded_line)
     return choice_format, choice_name, category_tensor, line_tensor
 
 def train(rnn, category_tensor, line_tensor):
@@ -94,11 +113,34 @@ def timeSince(since):
     s -= m * 60
     return '%dm %ds' % (m, s)
 
+def evaluate(rnn, line_tensor):
+    hidden = rnn.initHidden()
+
+    for i in range(line_tensor.size()[0]):
+        output, hidden = rnn(line_tensor[i], hidden)
+
+    return output
+
+def predict(rnn, input_line, n_predictions=3):
+    print('\n> %s' % input_line)
+    with torch.no_grad():
+        output = evaluate(rnn, lineToTensor(input_line))
+
+        # Get top N categories
+        topv, topi = output.topk(n_predictions, 1, True)
+        predictions = []
+
+        for i in range(n_predictions):
+            value = topv[0][i].item()
+            category_index = topi[0][i].item()
+            print('(%.2f) %s' % (value, ALL_CATEGORIES[category_index]))
+            predictions.append([value, ALL_CATEGORIES[category_index]])
+
 start = time.time()
 df = pd.read_csv("Data/balanced.csv")
 
 n_hidden = 128
-rnn = RNN(LETTERS_COUNT, n_hidden, 6)
+rnn = RNN(EMBEDDINGS_COUNT, n_hidden, FORMAT_COUNT)
 hidden = torch.zeros(1, n_hidden)
 # Keep track of losses for plotting
 current_loss = 0
