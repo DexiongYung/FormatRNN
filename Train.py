@@ -10,7 +10,7 @@ import time
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-n_iters = 1000000
+n_iters = 10000000
 print_every = 5000
 plot_every = 1000
 
